@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:java="http://www.mulesoft.org/schema/mule/java"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/java/current/mule-java.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="0dca0401-6c81-47d3-8bf4-f1f9a29a7f39" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="porducts-api-failFlow" doc:id="c1c38ef0-d0bb-4f7d-985c-e6b48dbe8f4b" >
+		<http:listener doc:name="Listener" doc:id="1d62c5ed-b374-48a5-b890-61b6694935fc" path="/ping" config-ref="HTTP_Listener_config">
+			<redelivery-policy messageDigestAlgorithm="a" idExpression="a" />
+		</http:listener>
+		<ee:transform doc:name="Transform Message" doc:id="c24956d0-cec4-4f9d-aec0-3f2f678b9982" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+---
+"Script Error"]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="porducts-api-failFlow2" doc:id="225be8b0-f3da-45da-95f1-7bb5ca6b3a2e" >
+		<http:listener doc:name="Listener" doc:id="cfb055f6-afe5-451a-a69a-260dfbe8e8d7" config-ref="HTTP_Listener_config" path="/work"/>
+		<ee:transform doc:name="Transform Message" doc:id="aa29ec94-ebfd-45b0-912c-078bcf3df366" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message" : "all good!"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="porducts-api-failFlow1" doc:id="870cc251-057e-48b9-bce3-70c72db857ae" >
+		<scheduler doc:name="Scheduler" doc:id="84c6c395-4b14-4a0b-95aa-98d9d078e5c6" >
+			<scheduling-strategy >
+				<fixed-frequency frequency="10" timeUnit="SECONDS"/>
+			</scheduling-strategy>
+		</scheduler>
+		<java:invoke-static doc:name="Invoke static" doc:id="56affc23-42e2-42b7-9ab3-996c9d3ab889" class="com.products.generator.RandGen" method="generate()" />
+		<logger level="INFO" doc:name="Logger" doc:id="4535d8e1-f95a-4654-bd50-72477b67f8a0" message="#[payload]" />
+		<choice doc:name="Choice" doc:id="219ec10b-eb23-4443-b091-7d572c63bb4f" >
+			<when expression="#[payload &gt; 50]">
+				<http:request method="GET" doc:name="Request" doc:id="8fc14ce0-2585-4ae7-96ab-b190acdf075e" url="http://products-api-am-demo-fail.us-e2.cloudhub.io/ping" />
+			</when>
+			<otherwise>
+				<http:request method="GET" doc:name="Request" doc:id="da4488d6-a006-41ea-a2db-8151baca3f00" url="http://products-api-am-demo-fail.us-e2.cloudhub.io/work"/>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>
